@@ -24,3 +24,20 @@
   .hero__cta .btn { padding-inline: 24px; }
   .join__cta .btn { width: 100%; font-size: 14px; padding-inline: 18px; }
 }
+
+/* Desktop: size the text column directly; percentage padding was relative
+   to the full viewport and consumed the capped content width. Mobile unchanged. */
+@media (min-width: 760px) {
+  .hero__content {
+    width: min(560px, 46%);
+    min-width: 0;
+    margin-left: auto;
+    margin-right: max(4%, calc((100% - 1180px) / 2));
+    padding: calc(var(--nav-h) + 48px) 0 110px;
+  }
+  .hero__title {
+    font-size: clamp(44px, 6.7vw, 96px);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
