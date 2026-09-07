@@ -16,7 +16,10 @@ for name, expected in EXPECTED.items():
     path = Path(name)
     if path.exists():
         raise RuntimeError('Refusing to overwrite existing site: ' + name)
-    data = urllib.request.urlopen(BASE + name, timeout=30).read()
+    print('Copying', name, flush=True)
+    url = BASE if name == 'index.html' else BASE + name
+    request = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0', 'Accept': '*/*'})
+    data = urllib.request.urlopen(request, timeout=30).read()
     sha = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
     if sha != expected:
         raise RuntimeError('Deployed file differs from original repository: ' + name)
@@ -24,7 +27,7 @@ for name, expected in EXPECTED.items():
     path.write_bytes(data)
 Path('assets/hero-photo.webp').write_bytes(base64.b64decode(Path('.github/hero-photo.b64').read_text().strip(), validate=True))
 html = Path('index.html').read_text()
-html = html.replace('src="assets/branch.jpg"', 'src="assets/hero-photo.webp" width="612" height="640" fetchpriority="high"')
+html = html.replace('src="assets/branch.jpg"', 'src="assets/hero-photo.webp" width="400" height="418" fetchpriority="high"')
 html = html.replace('  <link rel="stylesheet" href="styles.css">', '  <link rel="stylesheet" href="styles.css">\n  <link rel="stylesheet" href="updates.css">')
 html = html.replace('Один шаг: напиши человеку, который отвечает за набор. Расскажешь немного о себе — и получишь приглашение.', 'Один шаг: напиши лидеру или офицеру гильдии. Расскажешь немного о себе — и обсудим вступление.')
 needle = '            <a class="btn btn--ghost btn--lg" href="https://t.me/somni1aa"'
