@@ -1,0 +1,36 @@
+name: Prepare independent site copy
+on:
+  push:
+    paths: ['.github/hero-photo.b64']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Copy verified original files and apply changes
+        run: python3 .github/bootstrap.py
+      - name: Validate site
+        run: |
+          node --check script.js
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          html = Path('index.html').read_text()
+          assert html.count('https://t.me/ssh1ck') == 2
+          assert html.count('https://t.me/damn1luck') >= 4
+          assert 'Не аффилирован с Garena' in html
+          for src in re.findall(r'(?:src|href)="([^"#]+)"', html):
+              if not src.startswith(('https:', 'http:')):
+                  assert Path(src).is_file(), src
+          PY
+      - name: Save complete standalone site
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html styles.css script.js assets
+          git commit -m "Copy original site, replace hero photo, add guild officer"
+          git push origin main
