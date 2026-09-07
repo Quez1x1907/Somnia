@@ -1,0 +1,6 @@
+# локальные вспомогательные папки (не публикуем)
+_shots/
+_crop_test/
+.DS_Store
+Thumbs.db
+node_modules/
