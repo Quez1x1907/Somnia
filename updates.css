@@ -41,3 +41,25 @@
   .hero__cta .btn { padding-inline: 24px; }
   .join__cta .btn { width: 100%; font-size: 14px; padding-inline: 18px; }
 }
+
+/* Правки v3: ветка вернулась на hero, новая ава гильдии — карточкой в «О гильдии». */
+.banner-card {
+  margin: 26px 0 0;
+  display: inline-flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--glass);
+  transition: transform .35s cubic-bezier(.22,.61,.21,1), border-color .35s;
+}
+.banner-card:hover { transform: translateY(-4px); border-color: rgba(184,255,41,.35); }
+.banner-card img { display: block; width: min(280px, 64vw); height: auto; }
+.banner-card figcaption {
+  padding: 10px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
