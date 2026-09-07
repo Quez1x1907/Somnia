@@ -1,43 +1,43 @@
-/* Requested v2 changes: separate the supplied artwork from readable hero copy. */
-.hero { isolation: isolate; min-height: max(760px, 100svh); }
-.hero__bg { inset: var(--nav-h) auto 0 0; width: 51%; z-index: 0; overflow: hidden; }
-.hero__bg img { object-fit: contain; object-position: center; }
-.hero__shade { background: linear-gradient(90deg, rgba(5,6,8,.12), transparent 55%, var(--bg) 100%), linear-gradient(180deg, rgba(5,6,8,.12), transparent 65%, var(--bg)); }
-.hero__petals { z-index: 1; }
-.hero__content { position: relative; z-index: 2; padding: calc(var(--nav-h) + 48px) 0 110px 49%; }
-.hero__title { font-size: clamp(54px, 7.2vw, 108px); }
-.hero__kicker { letter-spacing: .23em; }
-.hero__scroll { z-index: 2; }
+/* Правки v2: новое фото героя, лепестки на всю ширину, мобильная раскладка. */
+
+/* canvas — замещаемый элемент: inset:0 его не растягивает, нужны размеры. */
+.hero__petals { width: 100%; height: 100%; z-index: -1; }
+
+/* Кадрирование нового фото. */
+.hero__bg img { object-position: 28% 34%; }
+
+/* На фото есть своё название гильдии — гасим его там, где идёт текст. */
+@media (min-width: 760px) {
+  .hero__shade {
+    background:
+      linear-gradient(90deg, rgba(5,6,8,.10) 0%, rgba(5,6,8,.42) 26%, rgba(5,6,8,.86) 52%, rgba(5,6,8,.96) 74%, var(--bg) 100%),
+      linear-gradient(180deg, rgba(5,6,8,.55) 0%, transparent 26%, transparent 62%, var(--bg) 100%);
+  }
+}
+
 .join__cta .btn { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 .footer__links a { min-height: 44px; }
 .nav__burger { min-height: 44px; min-width: 44px; }
+
+/* Мобильная версия: фото сверху целиком, текст под ним. */
 @media (max-width: 759px) {
-  .hero, html.shot .hero { display: block; min-height: 0; }
-  .hero__bg { position: relative; inset: auto; width: 100%; height: auto; margin-top: var(--nav-h); }
-  .hero__bg img { width: 100%; height: auto; object-fit: contain; transform: none !important; }
+  .hero, html.shot .hero { display: block; min-height: 0; isolation: isolate; }
+  .hero__bg {
+    position: relative;
+    inset: auto;
+    z-index: 0;
+    width: 100%;
+    height: auto;
+    margin-top: var(--nav-h);
+  }
+  .hero__bg img { width: 100%; height: auto; object-fit: contain; object-position: center; transform: none !important; }
   .hero__shade { background: linear-gradient(180deg, transparent 65%, var(--bg) 100%); }
-  .hero__content { min-height: 0; padding: 16px 0 64px; }
+  .hero__petals { z-index: 1; }
+  .hero__content { position: relative; z-index: 2; min-height: 0; padding: 16px 0 64px; }
   .hero__title { font-size: clamp(54px, 16vw, 96px); }
   .hero__kicker { font-size: 11px; letter-spacing: .2em; }
   .hero__badges { gap: 8px; }
   .hero__cta { width: 100%; }
   .hero__cta .btn { padding-inline: 24px; }
   .join__cta .btn { width: 100%; font-size: 14px; padding-inline: 18px; }
-}
-
-/* Desktop: size the text column directly; percentage padding was relative
-   to the full viewport and consumed the capped content width. Mobile unchanged. */
-@media (min-width: 760px) {
-  .hero__content {
-    width: min(560px, 46%);
-    min-width: 0;
-    margin-left: auto;
-    margin-right: max(4%, calc((100% - 1180px) / 2));
-    padding: calc(var(--nav-h) + 48px) 0 110px;
-  }
-  .hero__title {
-    font-size: clamp(44px, 6.7vw, 96px);
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
 }
