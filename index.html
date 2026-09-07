@@ -3,6 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <!-- somnia-desktop-router:start -->
+  <script>
+    (() => {
+      try {
+        if (!window.matchMedia || !window.matchMedia('(min-width: 1024px) and (hover: hover) and (pointer: fine)').matches) return;
+        const target = new URL('desktop.html', location.href);
+        target.search = location.search;
+        target.hash = location.hash;
+        location.replace(target.href);
+      } catch (_) { /* Keep the original site as a safe fallback. */ }
+    })();
+  </script>
+  <!-- somnia-desktop-router:end -->
+
   <title>СОМНИЯ — гильдия Free Fire · СНГ</title>
   <meta name="description" content="СОМНИЯ — гильдия Free Fire, СНГ регион. Уровень 5, идёт набор активных игроков 16+. Вступить: @damn1luck в Telegram.">
   <meta name="theme-color" content="#050608">
