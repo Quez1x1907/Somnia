@@ -1,0 +1,125 @@
+name: Deploy approved desktop version
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/desktop-release.json'
+      - '.github/desktop-release.py'
+      - '.github/workflows/deploy-desktop.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: somnia-desktop-release
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate existing mobile source and install desktop page
+        id: prepare
+        run: python3 .github/desktop-release.py
+      - name: Save verified site files
+        id: save
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html desktop.html
+          if ! git diff --cached --quiet; then
+            git commit -m 'Deploy animated desktop version; preserve original mobile site'
+            git push origin HEAD:main
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Check Pages publishing method
+        id: pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/pages" > /tmp/somnia-pages.json
+          echo "type=$(jq -r '.build_type' /tmp/somnia-pages.json)" >> "$GITHUB_OUTPUT"
+          jq '{html_url,build_type,source}' /tmp/somnia-pages.json
+      - name: Request branch-based Pages build
+        if: steps.pages.outputs.type == 'legacy'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ steps.save.outputs.sha }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds" > /tmp/somnia-build-request.json
+          for attempt in $(seq 1 50); do
+            gh api "repos/$GITHUB_REPOSITORY/pages/builds/latest" > /tmp/somnia-build.json
+            status=$(jq -r '.status' /tmp/somnia-build.json)
+            commit=$(jq -r '.commit' /tmp/somnia-build.json)
+            echo "Pages build: $status"
+            if [ "$commit" = "$RELEASE_SHA" ] && [ "$status" = 'built' ]; then exit 0; fi
+            if [ "$commit" = "$RELEASE_SHA" ] && [ "$status" = 'errored' ]; then cat /tmp/somnia-build.json; exit 1; fi
+            sleep 6
+          done
+          echo 'Pages build did not finish in the verification window.'
+          exit 1
+      - name: Configure workflow-based Pages
+        if: steps.pages.outputs.type == 'workflow'
+        uses: actions/configure-pages@v5
+      - name: Upload workflow-based site
+        if: steps.pages.outputs.type == 'workflow'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - name: Publish workflow-based site
+        if: steps.pages.outputs.type == 'workflow'
+        uses: actions/deploy-pages@v4
+      - name: Verify published desktop and unchanged mobile files
+        id: live
+        env:
+          RELEASE_SHA: ${{ steps.save.outputs.sha }}
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, time, urllib.request
+          from pathlib import Path
+          p=json.loads(Path('.github/desktop-release.json').read_text())
+          def get(name):
+              url=p['public_url']+name+'?release='+os.environ['RELEASE_SHA']
+              with urllib.request.urlopen(url,timeout=25) as r: return r.read()
+          def blob(b): return hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
+          failure=None
+          for attempt in range(15):
+              try:
+                  assert hashlib.sha256(get('desktop.html')).hexdigest()==p['desktop_sha256']
+                  html=get('index.html'); router=p['router'].encode()
+                  assert html.count(router)==1, 'Published router not ready'
+                  assert blob(html.replace(router,b'',1))==p['source_blobs']['index.html']
+                  for name in ('styles.css','updates.css','script.js'):
+                      assert blob(get(name))==p['source_blobs'][name], name
+                  print('PASS: public desktop is current; original public mobile HTML/CSS/JS verified.')
+                  break
+              except Exception as e:
+                  failure=e; print('Waiting for CDN:',type(e).__name__,str(e));time.sleep(5)
+          else: raise RuntimeError('Public verification failed') from failure
+          PY
+      - name: Record deployment outcome
+        if: always()
+        env:
+          RELEASE_RESULT: ${{ job.status }}
+          SOURCE_CHECK: ${{ steps.prepare.outcome }}
+          LIVE_CHECK: ${{ steps.live.outcome }}
+          RELEASE_SHA: ${{ steps.save.outputs.sha }}
+        run: |
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          status={'result':os.environ['RELEASE_RESULT'],'mobileSourcePreserved':os.environ['SOURCE_CHECK']=='success','liveVerified':os.environ['LIVE_CHECK']=='success','commit':os.environ.get('RELEASE_SHA',''),'url':'https://quez1x1907.github.io/Somnia/','workflowUrl':'https:'+'//github.com/'+os.environ['GITHUB_REPOSITORY']+'/actions/runs/'+os.environ['GITHUB_RUN_ID']}
+          Path('/tmp/somnia-deploy-status.json').write_text(json.dumps(status,indent=2)+'\n')
+          PY
+          git fetch origin main
+          git checkout --force -B main origin/main
+          cp /tmp/somnia-deploy-status.json .github/desktop-deploy-status.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/desktop-deploy-status.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record desktop deployment verification'
+            git push origin HEAD:main
+          fi
